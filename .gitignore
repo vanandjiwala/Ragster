@@ -1,0 +1,5 @@
+__pycache__
+.env
+DS-RPC-01
+*.zip
+.DS_Store
