@@ -14,5 +14,7 @@ class Settings:
     POSTGRES_PORT: str = os.getenv('POSTGRES_PORT', '5432')
     POSTGRES_URL: str = os.getenv('POSTGRES_URL')
     SECRET_KEY: str = os.getenv('SECRET_KEY')
+    DEFAULT_ROLE: str = "employee"
+    DEFAULT_KB: str = "general"
 
 settings = Settings()

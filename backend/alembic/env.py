@@ -8,6 +8,11 @@ from app.db.session import Base
 from app.models.user import User
 from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_base import Document
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.role_permission import RolePermission
+from app.models.knowledge_base_user_role import KnowledgeBaseUserRole
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

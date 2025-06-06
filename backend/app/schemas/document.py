@@ -16,4 +16,4 @@ class DocumentOut(DocumentBase):
     knowledge_base_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

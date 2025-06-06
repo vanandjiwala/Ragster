@@ -14,6 +14,7 @@ class KnowledgeBase(Base):
 
     # One-to-many relationship with documents
     documents = relationship("Document", back_populates="knowledge_base", cascade="all, delete")
+    user_roles = relationship("KnowledgeBaseUserRole", back_populates="knowledge_base")
 
 class Document(Base):
     __tablename__ = "documents"
