@@ -3,3 +3,4 @@ __pycache__
 DS-RPC-01
 *.zip
 .DS_Store
+backend/.idea

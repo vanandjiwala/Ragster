@@ -1,17 +1,13 @@
 from fastapi import FastAPI
-from app.api.v1.api import api_router
-from app.db import engine, Base
-from contextlib import asynccontextmanager
+from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.knowledge_base import router as knowledge_base_router
+from app.api.v1.endpoints.document import router as document_router
+from app.core.config import Settings
+app = FastAPI(title="Ragster")
 
-@asynccontextmanager
-async def lifespan(app):
-    Base.metadata.create_all(bind=engine)
-    yield
-
-app = FastAPI(title="Ragster Backend API", lifespan=lifespan)
-
-app.include_router(api_router, prefix="/api/v1")
-
+app.include_router(health_router, prefix="/api/v1", tags=["health"])
+app.include_router(knowledge_base_router, prefix="/api/v1", tags=["KnowledgeBase"])
+app.include_router(document_router, prefix="/api/v1", tags=["document"])
 @app.get("/")
-def root():
-    return {"message": "Hello from backend!"}
+def read_root():
+    return {"status": f"{Settings.POSTGRES_URL}"}
