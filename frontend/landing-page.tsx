@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-
+import { useLogin } from "@/lib/useLogin"; // At top
 import { useState } from "react";
 import {
   Eye,
@@ -27,19 +27,72 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Component() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const { login, loading, error, setError } = useLogin();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [registerFirstName, setRegisterFirstName] = useState("");
+  const [registerLastName, setRegisterLastName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerSuccess, setRegisterSuccess] = useState<string | null>(null);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login submitted");
+    setRegisterError(null);
+    setRegisterSuccess(null);
+
+    // Combine first and last name for username
+    const username = `${registerFirstName}.${registerLastName}`.trim();
+
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/user/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setRegisterError(
+          err.detail ? err.detail[0]?.msg : "Registration failed"
+        );
+        return;
+      }
+      const data = await res.json();
+      setRegisterSuccess("Registration successful! Please log in.");
+      // Optionally, switch to login tab
+    } catch (err) {
+      setRegisterError("Server error. Please try again.");
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log("Registration submitted");
+    setLoginError(null);
+
+    // Call login hook
+    const { token, error } = await login({ username: username, password });
+    if (error) {
+      setLoginError(error);
+      return;
+    }
+    // Store token (e.g., localStorage or cookie)
+    localStorage.setItem("ragster_token", token);
+    // Secure; FOR HTTPS
+    // document.cookie = `ragster_token=${token}; path=/;  max-age=86400`;
+    console.log(document.cookie);
+    // Redirect to dashboard or show success (implement navigation as needed)
+    // window.location.href = "/dashboard"; // or use next/navigation
+    window.location.assign("/dashboard");
   };
 
   return (
@@ -147,13 +200,15 @@ export default function Component() {
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="username">Username</Label>
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
+                        id="username"
+                        type="text"
+                        placeholder="Enter Username"
                         required
                         className="h-11"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -165,6 +220,8 @@ export default function Component() {
                           placeholder="Enter your password"
                           required
                           className="h-11 pr-10"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                         />
                         <Button
                           type="button"
@@ -179,6 +236,11 @@ export default function Component() {
                             <Eye className="h-4 w-4 text-gray-400" />
                           )}
                         </Button>
+                        {loginError && (
+                          <div className="text-red-600 text-sm">
+                            {loginError}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -218,6 +280,8 @@ export default function Component() {
                           placeholder="John"
                           required
                           className="h-11"
+                          value={registerFirstName}
+                          onChange={(e) => setRegisterFirstName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -227,7 +291,29 @@ export default function Component() {
                           placeholder="Doe"
                           required
                           className="h-11"
+                          value={registerLastName}
+                          onChange={(e) => setRegisterLastName(e.target.value)}
                         />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="registerUsername">Username</Label>
+                      <Input
+                        id="registerUsername"
+                        value={
+                          registerFirstName && registerLastName
+                            ? `${registerFirstName
+                                .trim()
+                                .toLowerCase()}.${registerLastName
+                                .trim()
+                                .toLowerCase()}`
+                            : ""
+                        }
+                        readOnly
+                        className="h-11 bg-gray-100 cursor-not-allowed"
+                      />
+                      <div className="text-xs text-gray-500 mt-1">
+                        Your username will be firstname.lastname
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -238,6 +324,8 @@ export default function Component() {
                         placeholder="Enter your email"
                         required
                         className="h-11"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -249,6 +337,8 @@ export default function Component() {
                           placeholder="Create a password"
                           required
                           className="h-11 pr-10"
+                          value={registerPassword}
+                          onChange={(e) => setRegisterPassword(e.target.value)}
                         />
                         <Button
                           type="button"
@@ -316,6 +406,16 @@ export default function Component() {
                     >
                       Create Account
                     </Button>
+                    {registerError && (
+                      <div className="text-red-600 text-sm">
+                        {registerError}
+                      </div>
+                    )}
+                    {registerSuccess && (
+                      <div className="text-green-600 text-sm">
+                        {registerSuccess}
+                      </div>
+                    )}
                   </form>
                 </TabsContent>
               </Tabs>
