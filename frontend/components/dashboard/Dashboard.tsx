@@ -237,7 +237,20 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               : "Knowledge Bases"}
           </h1>
           {activeSection === "knowledgebase" && (
-            <Button size="sm" onClick={() => router.push("/dashboard/knowledgebase/create")} className="gap-1">
+            <Button
+              size="sm"
+              onClick={() => router.push("/dashboard/knowledgebase/create")}
+              className="gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add
+            </Button>
+          )}
+          {activeSection === "roles" && (
+            <Button
+              size="sm"
+              onClick={() => router.push("/dashboard/roles/create")}
+              className="gap-1"
+            >
               <Plus className="w-4 h-4" /> Add
             </Button>
           )}
