@@ -85,11 +85,9 @@ export default function Component() {
       setLoginError(error);
       return;
     }
-    // Store token (e.g., localStorage or cookie)
+    // Store token client side and set auth cookie for middleware
     localStorage.setItem("ragster_token", token);
-    // Secure; FOR HTTPS
-    // document.cookie = `ragster_token=${token}; path=/;  max-age=86400`;
-    console.log(document.cookie);
+    document.cookie = `ragster_token=${token}; path=/; max-age=86400`;
     // Redirect to dashboard or show success (implement navigation as needed)
     // window.location.href = "/dashboard"; // or use next/navigation
     window.location.assign("/dashboard");
