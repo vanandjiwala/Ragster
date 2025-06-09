@@ -22,7 +22,8 @@ export function useUserRoles(token: string | null) {
         setIsAdmin(
           data.some(
             (role: any) =>
-              role.role_name && role.role_name.toLowerCase() === "admin"
+              role.role_name &&
+              ["admin", "super_admin"].includes(role.role_name.toLowerCase())
           )
         );
       })
