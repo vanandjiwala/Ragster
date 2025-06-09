@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import KnowledgeBaseList from "./KnowledgeBaseList";
+import RoleList from "./RoleList";
+import UserList from "./UserList";
 import { useUserRoles } from "@/lib/useUserRoles";
 
 const THREADS = [
@@ -44,7 +46,7 @@ const MESSAGES = [
   },
 ];
 
-type Section = "chat" | "upload" | "knowledgebase";
+type Section = "chat" | "upload" | "knowledgebase" | "roles" | "users";
 
 export default function Dashboard({ initialSection }: { initialSection?: Section }) {
   const router = useRouter();
@@ -133,6 +135,36 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               {sidebarOpen && "Knowledge Base"}
             </Button>
           )}
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className={clsx(
+                "justify-start gap-3 w-full transition-all",
+                !sidebarOpen && "justify-center",
+                activeSection === "roles" && "!bg-blue-200"
+              )}
+              onClick={() => setActiveSection("roles")}
+            >
+              <Book className="w-5 h-5" />
+              {sidebarOpen && "Roles"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className={clsx(
+                "justify-start gap-3 w-full transition-all",
+                !sidebarOpen && "justify-center",
+                activeSection === "users" && "!bg-blue-200"
+              )}
+              onClick={() => setActiveSection("users")}
+            >
+              <Book className="w-5 h-5" />
+              {sidebarOpen && "Users"}
+            </Button>
+          )}
           {canUpload && (
             <Button
               variant="secondary"
@@ -198,6 +230,10 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               ? "Chat with Ragster"
               : activeSection === "upload"
               ? "Upload Document"
+              : activeSection === "roles"
+              ? "Roles"
+              : activeSection === "users"
+              ? "Users"
               : "Knowledge Bases"}
           </h1>
           {activeSection === "knowledgebase" && (
@@ -245,6 +281,8 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
         )}
 
         {activeSection === "knowledgebase" && <KnowledgeBaseList token={token} />}
+        {activeSection === "roles" && <RoleList token={token} />}
+        {activeSection === "users" && <UserList token={token} />}
 
         {activeSection === "chat" && (
           <div className="w-full max-w-2xl mx-auto px-4 py-6 flex gap-3">
