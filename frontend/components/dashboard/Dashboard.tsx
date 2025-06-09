@@ -245,15 +245,6 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               <Plus className="w-4 h-4" /> Add
             </Button>
           )}
-          {activeSection === "roles" && (
-            <Button
-              size="sm"
-              onClick={() => router.push("/dashboard/roles/create")}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" /> Add
-            </Button>
-          )}
         </div>
 
         {activeSection === "chat" && (

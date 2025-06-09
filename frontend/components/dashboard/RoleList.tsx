@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Modal from "@/components/ui/modal";
+import { Pencil, Trash2, Plus } from "lucide-react";
 
 interface Props {
   token: string | null;
@@ -18,6 +21,23 @@ interface Role {
 export default function RoleList({ token }: Props) {
   const [data, setData] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editRole, setEditRole] = useState<Role | null>(null);
+  const [deleteRole, setDeleteRole] = useState<Role | null>(null);
+  const [name, setName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [description, setDescription] = useState("");
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!successMsg && !errorMsg) return;
+    const t = setTimeout(() => {
+      setSuccessMsg(null);
+      setErrorMsg(null);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [successMsg, errorMsg]);
 
   const fetchData = () => {
     if (!token) return;
@@ -34,34 +54,94 @@ export default function RoleList({ token }: Props) {
     fetchData();
   }, [token]);
 
-  const handleEdit = async (role: Role) => {
+  const openCreate = () => {
+    setEditRole(null);
+    setName("");
+    setDisplayName("");
+    setDescription("");
+    setFormOpen(true);
+  };
+
+  const openEdit = (role: Role) => {
+    setEditRole(role);
+    setName(role.name);
+    setDisplayName(role.display_name);
+    setDescription(role.description ?? "");
+    setFormOpen(true);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!token) return;
-    const display_name = prompt("Display Name", role.display_name);
-    if (display_name === null) return;
-    const description = prompt("Description", role.description ?? "") ?? "";
-    await fetch(`http://localhost:8000/api/v1/role/${role.id}`, {
-      method: "PUT",
+    const url = editRole
+      ? `http://localhost:8000/api/v1/role/${editRole.id}`
+      : "http://localhost:8000/api/v1/role/";
+    const method = editRole ? "PUT" : "POST";
+    const body = editRole
+      ? { display_name: displayName, description }
+      : { name, display_name: displayName, description };
+
+    const res = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ display_name, description }),
+      body: JSON.stringify(body),
     });
-    fetchData();
+
+    if (res.ok) {
+      setSuccessMsg(
+        editRole ? "Role updated successfully." : "Role created successfully."
+      );
+      setErrorMsg(null);
+      setFormOpen(false);
+      fetchData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setErrorMsg(err.detail || "Operation failed");
+      setSuccessMsg(null);
+    }
   };
 
-  const handleDelete = async (role: Role) => {
-    if (!token) return;
-    if (!confirm("Delete this role?")) return;
-    await fetch(`http://localhost:8000/api/v1/role/${role.id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchData();
+  const confirmDelete = (role: Role) => {
+    setDeleteRole(role);
+  };
+
+  const handleDelete = async () => {
+    if (!token || !deleteRole) return;
+    const res = await fetch(
+      `http://localhost:8000/api/v1/role/${deleteRole.id}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    if (res.ok) {
+      setSuccessMsg("Role deleted successfully.");
+      setErrorMsg(null);
+      fetchData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setErrorMsg(err.detail || "Delete failed");
+      setSuccessMsg(null);
+    }
+    setDeleteRole(null);
   };
 
   return (
     <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex-1">
+          {successMsg && (
+            <div className="text-green-600 text-sm">{successMsg}</div>
+          )}
+          {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
+        </div>
+        <Button size="sm" className="gap-1" onClick={openCreate}>
+          <Plus className="w-4 h-4" /> Add
+        </Button>
+      </div>
       {loading ? (
         <div>Loading...</div>
       ) : (
@@ -84,14 +164,14 @@ export default function RoleList({ token }: Props) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleEdit(role)}
+                    onClick={() => openEdit(role)}
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDelete(role)}
+                    onClick={() => confirmDelete(role)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -101,6 +181,45 @@ export default function RoleList({ token }: Props) {
           </tbody>
         </table>
       )}
+
+      <Modal open={formOpen} onClose={() => setFormOpen(false)}>
+        <form onSubmit={handleFormSubmit} className="space-y-4 p-4">
+          {!editRole && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="display">Display Name</Label>
+            <Input id="display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desc">Description</Label>
+            <Input id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">{editRole ? "Update" : "Create"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!deleteRole} onClose={() => setDeleteRole(null)}>
+        <div className="p-4 space-y-4">
+          <p>Are you sure you want to delete this role?</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleteRole(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
