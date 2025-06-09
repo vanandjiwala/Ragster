@@ -8,6 +8,9 @@ from app.db.session import SessionLocal
 from app.models import Role, KnowledgeBase, KnowledgeBaseUserRole
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut
+
+
+
 from app.core.security import hash_password
 from app.schemas.user_role import UserRoleOut
 from fastapi.security import OAuth2PasswordRequestForm
@@ -82,3 +85,9 @@ def get_my_roles(
         }
         for a in assignments
     ]
+
+
+@router.get("/", response_model=List[UserOut])
+def list_users(db: Session = Depends(get_db)):
+    """Return all registered users."""
+    return db.query(User).all()
