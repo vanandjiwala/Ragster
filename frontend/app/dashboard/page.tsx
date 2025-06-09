@@ -6,6 +6,7 @@ import {
   FileUp,
   MessageCircle,
   Blend,
+  Book,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -59,6 +60,8 @@ export default function DashboardPage() {
   const [canUpload, setCanUpload] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState<"chat" | "upload">("chat");
+  const [token, setToken] = useState<string | null>(null);
+  const { isAdmin } = useUserRoles(token);
 
   const handleLogout = () => {
     localStorage.removeItem("ragster_token");
@@ -67,9 +70,11 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("ragster_token");
-    if (!token) {
+    const stored = localStorage.getItem("ragster_token");
+    if (!stored) {
       router.push("/");
+    } else {
+      setToken(stored);
     }
   }, [router]);
 
@@ -130,6 +135,20 @@ export default function DashboardPage() {
             <MessageCircle className="w-5 h-5" />
             {sidebarOpen && "Chat"}
           </Button>
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className={clsx(
+                "justify-start gap-3 w-full transition-all",
+                !sidebarOpen && "justify-center"
+              )}
+              onClick={() => router.push("/dashboard/knowledgebase")}
+            >
+              <Book className="w-5 h-5" />
+              {sidebarOpen && "Knowledge Base"}
+            </Button>
+          )}
           {canUpload && (
             <Button
               variant="secondary"
