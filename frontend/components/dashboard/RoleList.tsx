@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Modal from "@/components/ui/modal";
-import { Pencil, Trash2, Plus, Key } from "lucide-react";
+import { Pencil, Trash2, Plus, Key, X } from "lucide-react";
 
 interface Props {
   token: string | null;
@@ -296,7 +296,29 @@ export default function RoleList({ token }: Props) {
 
       <Modal open={permModalOpen} onClose={() => setPermModalOpen(false)}>
         <div className="p-4 space-y-4">
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+          <h2 className="text-lg font-semibold">Assign Permissions</h2>
+          <div className="flex flex-wrap gap-2">
+            {selectedPermIds.map((id) => {
+              const perm = availablePerms.find((p) => p.id === id)
+              if (!perm) return null
+              return (
+                <span
+                  key={id}
+                  className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md text-sm flex items-center gap-1"
+                >
+                  {perm.display_name}
+                  <button
+                    type="button"
+                    className="hover:text-red-600"
+                    onClick={() => togglePerm(id)}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
             {availablePerms.map((perm) => (
               <label key={perm.id} className="flex items-center gap-2">
                 <input
