@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import KnowledgeBaseList from "./KnowledgeBaseList";
 import RoleList from "./RoleList";
+import PermissionList from "./PermissionList";
 import UserList from "./UserList";
 import { useUserRoles } from "@/lib/useUserRoles";
 
@@ -45,7 +46,13 @@ const MESSAGES = [
   },
 ];
 
-type Section = "chat" | "upload" | "knowledgebase" | "roles" | "users";
+type Section =
+  | "chat"
+  | "upload"
+  | "knowledgebase"
+  | "roles"
+  | "permissions"
+  | "users";
 
 export default function Dashboard({ initialSection }: { initialSection?: Section }) {
   const router = useRouter();
@@ -156,6 +163,21 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               className={clsx(
                 "justify-start gap-3 w-full transition-all",
                 !sidebarOpen && "justify-center",
+                activeSection === "permissions" && "!bg-blue-200"
+              )}
+              onClick={() => setActiveSection("permissions")}
+            >
+              <Book className="w-5 h-5" />
+              {sidebarOpen && "Permissions"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className={clsx(
+                "justify-start gap-3 w-full transition-all",
+                !sidebarOpen && "justify-center",
                 activeSection === "users" && "!bg-blue-200"
               )}
               onClick={() => setActiveSection("users")}
@@ -231,6 +253,8 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               ? "Upload Document"
               : activeSection === "roles"
               ? "Roles"
+              : activeSection === "permissions"
+              ? "Permissions"
               : activeSection === "users"
               ? "Users"
               : "Knowledge Bases"}
@@ -276,6 +300,7 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
 
         {activeSection === "knowledgebase" && <KnowledgeBaseList token={token} />}
         {activeSection === "roles" && <RoleList token={token} />}
+        {activeSection === "permissions" && <PermissionList token={token} />}
         {activeSection === "users" && <UserList token={token} />}
 
         {activeSection === "chat" && (
