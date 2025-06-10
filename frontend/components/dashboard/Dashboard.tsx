@@ -11,7 +11,6 @@ import {
   Book,
   ChevronLeft,
   ChevronRight,
-  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import KnowledgeBaseList from "./KnowledgeBaseList";
@@ -236,15 +235,6 @@ export default function Dashboard({ initialSection }: { initialSection?: Section
               ? "Users"
               : "Knowledge Bases"}
           </h1>
-          {activeSection === "knowledgebase" && (
-            <Button
-              size="sm"
-              onClick={() => router.push("/dashboard/knowledgebase/create")}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" /> Add
-            </Button>
-          )}
         </div>
 
         {activeSection === "chat" && (
