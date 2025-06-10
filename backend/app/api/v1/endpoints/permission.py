@@ -54,7 +54,9 @@ def update_permission(permission_id: int, permission_update: PermissionUpdate, d
     db.refresh(perm)
     return perm
 
-@router.delete("/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{permission_id}",
+               status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[require_role(["admin", "super_admin"])])
 def delete_permission(permission_id: int, db: Session = Depends(get_db)):
     perm = db.query(Permission).filter(Permission.id == permission_id).first()
     if not perm:

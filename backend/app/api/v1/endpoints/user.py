@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.config import Settings
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_role
 from app.db.session import SessionLocal
 from app.models import Role, KnowledgeBase, KnowledgeBaseUserRole
 from app.models.user import User
@@ -87,7 +87,9 @@ def get_my_roles(
     ]
 
 
-@router.get("/", response_model=List[UserOut])
+@router.get("/",
+            response_model=List[UserOut],
+            dependencies=[require_role(["admin", "super_admin"])])
 def list_users(db: Session = Depends(get_db)):
     """Return all registered users."""
     return db.query(User).all()

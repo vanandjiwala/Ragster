@@ -26,18 +26,24 @@ def create_role(role: RoleCreate, db: Session = Depends(get_db)):
     db.refresh(db_role)
     return db_role
 
-@router.get("/", response_model=List[RoleOut])
+@router.get("/",
+            response_model=List[RoleOut],
+            dependencies=[require_role(["admin", "super_admin"])])
 def list_roles(db: Session = Depends(get_db)):
     return db.query(Role).all()
 
-@router.get("/{role_id}", response_model=RoleOut)
+@router.get("/{role_id}",
+            response_model=RoleOut,
+            dependencies=[require_role(["admin", "super_admin"])])
 def get_role(role_id: int, db: Session = Depends(get_db)):
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 
-@router.put("/{role_id}", response_model=RoleOut)
+@router.put("/{role_id}",
+            response_model=RoleOut,
+            dependencies=[require_role(["admin", "super_admin"])])
 def update_role(role_id: int, role_update: RoleUpdate, db: Session = Depends(get_db)):
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
@@ -48,7 +54,9 @@ def update_role(role_id: int, role_update: RoleUpdate, db: Session = Depends(get
     db.refresh(role)
     return role
 
-@router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{role_id}",
+               status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[require_role(["admin", "super_admin"])])
 def delete_role(role_id: int, db: Session = Depends(get_db)):
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
