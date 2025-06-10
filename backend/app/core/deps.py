@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
-from app.models import KnowledgeBaseUserRole, Role
+from app.models import KnowledgeBaseUserRole, Role, RolePermission, Permission
 from app.models.user import User
 from app.core.jwt import decode_access_token
 
@@ -42,4 +42,34 @@ def require_role(required_roles: list[str]):
         if not any(r in required_roles for r in user_role_names):
             raise HTTPException(status_code=403, detail="Not authorized")
         return True
+    return Depends(dependency)
+
+
+def require_permission(required_permissions: list[str]):
+    """Dependency to ensure the current user has at least one of the given permissions."""
+
+    def dependency(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ):
+        # Get role ids for the current user
+        role_ids = [ur.role_id for ur in db.query(KnowledgeBaseUserRole).filter(
+            KnowledgeBaseUserRole.user_id == current_user.id
+        ).all()]
+
+        if not role_ids:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        perms = (
+            db.query(RolePermission)
+            .join(Permission, RolePermission.permission_id == Permission.id)
+            .filter(RolePermission.role_id.in_(role_ids))
+            .all()
+        )
+        permission_codes = [rp.permission.code for rp in perms]
+
+        if not any(p in permission_codes for p in required_permissions):
+            raise HTTPException(status_code=403, detail="Not authorized")
+        return True
+
     return Depends(dependency)
