@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Modal from "@/components/ui/modal";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Key } from "lucide-react";
 
 interface Props {
   token: string | null;
@@ -14,6 +14,13 @@ interface Props {
 interface Role {
   id: number;
   name: string;
+  display_name: string;
+  description?: string | null;
+}
+
+interface Permission {
+  id: number;
+  code: string;
   display_name: string;
   description?: string | null;
 }
@@ -29,6 +36,12 @@ export default function RoleList({ token }: Props) {
   const [description, setDescription] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [rolePermissions, setRolePermissions] = useState<Record<number, Permission[]>>({});
+  const [permModalOpen, setPermModalOpen] = useState(false);
+  const [permRole, setPermRole] = useState<Role | null>(null);
+  const [availablePerms, setAvailablePerms] = useState<Permission[]>([]);
+  const [selectedPermIds, setSelectedPermIds] = useState<number[]>([]);
+  const [existingPermIds, setExistingPermIds] = useState<number[]>([]);
 
   useEffect(() => {
     if (!successMsg && !errorMsg) return;
@@ -46,8 +59,42 @@ export default function RoleList({ token }: Props) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then(setData)
+      .then((roles: Role[]) => {
+        setData(roles);
+        roles.forEach((r) => fetchRolePermissions(r.id));
+      })
       .finally(() => setLoading(false));
+  };
+
+  const fetchRolePermissions = (roleId: number) => {
+    if (!token) return;
+    fetch(`http://localhost:8000/api/v1/role-permission/${roleId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((perms: Permission[]) =>
+        setRolePermissions((prev) => ({ ...prev, [roleId]: perms }))
+      );
+  };
+
+  const openPermissions = (role: Role) => {
+    if (!token) return;
+    setPermRole(role);
+    Promise.all([
+      fetch("http://localhost:8000/api/v1/permission/", {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((r) => r.json()),
+      fetch(`http://localhost:8000/api/v1/role-permission/${role.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((r) => r.json()),
+    ]).then(([all, existing]: [Permission[], Permission[]]) => {
+      setAvailablePerms(all);
+      const ids = existing.map((p) => p.id);
+      setExistingPermIds(ids);
+      setSelectedPermIds(ids);
+      setPermModalOpen(true);
+      setRolePermissions((prev) => ({ ...prev, [role.id]: existing }));
+    });
   };
 
   useEffect(() => {
@@ -129,6 +176,35 @@ export default function RoleList({ token }: Props) {
     setDeleteRole(null);
   };
 
+  const togglePerm = (id: number) => {
+    setSelectedPermIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const handlePermSave = async () => {
+    if (!token || !permRole) return;
+    const payloadIds = Array.from(new Set([...selectedPermIds, ...existingPermIds]));
+    const res = await fetch("http://localhost:8000/api/v1/role-permission/assign", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ role_id: permRole.id, permission_ids: payloadIds }),
+    });
+    if (res.ok) {
+      setSuccessMsg("Permissions updated.");
+      setErrorMsg(null);
+      fetchRolePermissions(permRole.id);
+      setPermModalOpen(false);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setErrorMsg(err.detail || "Operation failed");
+      setSuccessMsg(null);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8">
       <div className="flex justify-between items-center mb-4">
@@ -151,6 +227,7 @@ export default function RoleList({ token }: Props) {
               <th className="px-4 py-2 text-left font-semibold">Name</th>
               <th className="px-4 py-2 text-left font-semibold">Display Name</th>
               <th className="px-4 py-2 text-left font-semibold">Description</th>
+              <th className="px-4 py-2 text-left font-semibold">Permissions</th>
               <th className="px-4 py-2 w-20 text-center font-semibold">Actions</th>
             </tr>
           </thead>
@@ -160,6 +237,9 @@ export default function RoleList({ token }: Props) {
                 <td className="px-4 py-2">{role.name}</td>
                 <td className="px-4 py-2">{role.display_name}</td>
                 <td className="px-4 py-2">{role.description}</td>
+                <td className="px-4 py-2">
+                  {rolePermissions[role.id]?.map((p) => p.display_name).join(", ")}
+                </td>
                 <td className="px-4 py-2 flex items-center justify-center gap-2">
                   <Button
                     variant="ghost"
@@ -174,6 +254,13 @@ export default function RoleList({ token }: Props) {
                     onClick={() => confirmDelete(role)}
                   >
                     <Trash2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openPermissions(role)}
+                  >
+                    <Key className="w-4 h-4" />
                   </Button>
                 </td>
               </tr>
@@ -205,6 +292,29 @@ export default function RoleList({ token }: Props) {
             <Button type="submit">{editRole ? "Update" : "Create"}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={permModalOpen} onClose={() => setPermModalOpen(false)}>
+        <div className="p-4 space-y-4">
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {availablePerms.map((perm) => (
+              <label key={perm.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedPermIds.includes(perm.id)}
+                  onChange={() => togglePerm(perm.id)}
+                />
+                {perm.display_name}
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setPermModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePermSave}>Save</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={!!deleteRole} onClose={() => setDeleteRole(null)}>
