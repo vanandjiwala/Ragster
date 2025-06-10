@@ -6,7 +6,7 @@ from app.models.knowledge_base_user_role import KnowledgeBaseUserRole
 from app.models.user import User
 from app.models.role import Role
 from app.models.knowledge_base import KnowledgeBase
-from app.schemas.role_assignment import RoleAssignRequest
+from app.schemas.role_assignment import RoleAssignRequest, RoleAssignMultipleRequest
 
 router = APIRouter(prefix="/role-assignment")
 
@@ -50,6 +50,38 @@ def assign_role(data: RoleAssignRequest, db: Session = Depends(get_db)):
     return {"message": "Role assigned successfully"}
 
 
+@router.post(
+    "/assign-multiple",
+    status_code=status.HTTP_200_OK,
+    dependencies=[require_role(["admin", "super_admin"])]
+)
+def assign_roles(data: RoleAssignMultipleRequest, db: Session = Depends(get_db)):
+    """Assign multiple roles to a user for a knowledge base."""
+    user = db.query(User).filter(User.id == data.user_id).first()
+    kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == data.knowledge_base_id).first()
+    if not user or not kb:
+        raise HTTPException(status_code=404, detail="User or KB not found")
+    for role_id in data.role_ids:
+        role = db.query(Role).filter(Role.id == role_id).first()
+        if not role:
+            continue
+        exists = db.query(KnowledgeBaseUserRole).filter_by(
+            user_id=data.user_id,
+            knowledge_base_id=data.knowledge_base_id,
+            role_id=role_id,
+        ).first()
+        if not exists:
+            db.add(
+                KnowledgeBaseUserRole(
+                    user_id=data.user_id,
+                    knowledge_base_id=data.knowledge_base_id,
+                    role_id=role_id,
+                )
+            )
+    db.commit()
+    return {"message": "Roles assigned successfully"}
+
+
 @router.delete(
     "/delete",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -70,3 +102,4 @@ def delete_role_assignment(
     db.delete(assignment)
     db.commit()
     return
+
